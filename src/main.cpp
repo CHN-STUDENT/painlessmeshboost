@@ -26,6 +26,7 @@ painlessmesh::logger::LogClass Log;
 namespace po = boost::program_options;
 
 #include <iostream>
+#include <fstream>
 #include <iterator>
 #include <limits>
 #include <random>
@@ -230,11 +231,13 @@ int main(void) {
 
     if (logLevel.size() == 0 || contains(logLevel, "receive")) {
       mesh.onReceive([&mesh](uint32_t nodeId, std::string& msg) {
-        std::cout << "{\"event\":\"receive\",\"nodeTime\":"
-                  << mesh.getNodeTime() << ",\"time\":\"" << timeToString()
-                  << "\""
-                  << ",\"nodeId\":" << nodeId << ",\"msg\":\"" << msg << "\"}"
-                  << std::endl;
+        //ofstream outfile;
+        //outfile.open("/root/painlessmeshboost/log.txt", ios::app|ios::out);
+        // outfile << "{\"event\":\"receive\",\"nodeTime\":"
+        //           << mesh.getNodeTime() << ",\"time\":\"" << timeToString()
+        //           << "\""
+        //           << ",\"nodeId\":" << nodeId << ",\"msg\":\"" << msg << "\"}"
+        //           << std::endl;
         vector <std::string> v;
         split_string(msg,v,"/");
         struct nodeVector temp;
@@ -242,20 +245,28 @@ int main(void) {
         temp.message = v[1];
         temp.nodeTime = mesh.getNodeTime();
         temp.printTime = timeToString();
+        //outfile <<"sensor"<< temp.sensor << std::endl;
+        //outfile <<"msg"<< temp.message << std::endl;
         v.clear();
+        bool f = false;
+        char tempId[20];
+         //uint32_t to string 
+        std::string id;
+        sprintf( tempId, "%u", nodeId );
+        id = tempId;
+        //outfile << "id" <<id<<std::endl;
+        //outfile.close();
         for(int i=0;i<NODE_NUM_MAX;i++)
         {
-          //uint32_t to string 
-          char tempId[20];
-          std::string id;
-          sprintf( tempId, "%u", nodeId );
-          id = tempId;
           if(n[i].id==id)
           { //push message info message quene
             n[i].isConnect = true;
             if(n[i].v.empty())
             { //Sensor message is null
               n[i].v.push_back(temp);
+              nodeNum=i+1;
+              f = true;
+              break;
             }
             else
             {
@@ -268,15 +279,33 @@ int main(void) {
                   n[i].v[j].message =  temp.message;
                   n[i].v[j].nodeTime =  temp.nodeTime;
                   n[i].v[j].printTime =  temp.printTime;
+                  f = true;
                   flag = true;
+                  nodeNum=i+1;
                   break;
                 }
               }
               if(flag == false)
               {//Sensor message is null
                 n[i].v.push_back(temp);
+                f = true;
+                nodeNum=i+1;
+                break;
               }
             }
+          }
+        }
+        if(f==false)
+        {
+          if(nodeNum > NODE_NUM_MAX) 
+          {
+            std::cerr << "error: Can not connect more node"<< std::endl;
+          }
+          else
+          {
+            n[nodeNum].id = id;
+            n[nodeNum].isConnect = true;
+            n[nodeNum].v.push_back(temp);
           }
         }
       });
@@ -327,12 +356,12 @@ int main(void) {
 
     if (logLevel.size() == 0 || contains(logLevel, "disconnect")) {
       mesh.onDroppedConnection([&mesh](uint32_t nodeId) {
-        std::cout << "{\"event\":\"disconnect\",\"nodeTime\":"
-                  << mesh.getNodeTime() << ",\"time\":\"" << timeToString()
-                  << "\""
-                  << ",\"nodeId\":" << nodeId
-                  << ", \"layout\":" << mesh.asNodeTree().toString() << "}"
-                  << std::endl;
+        // std::cout << "{\"event\":\"disconnect\",\"nodeTime\":"
+        //           << mesh.getNodeTime() << ",\"time\":\"" << timeToString()
+        //           << "\""
+        //           << ",\"nodeId\":" << nodeId
+        //           << ", \"layout\":" << mesh.asNodeTree().toString() << "}"
+        //           << std::endl;
         for(int i=0;i<NODE_NUM_MAX;i++)
         {
             //uint32_t to string 
@@ -353,28 +382,28 @@ int main(void) {
 
     if (logLevel.size() == 0 || contains(logLevel, "change")) {
       mesh.onChangedConnections([&mesh]() {
-        std::cout << "{\"event\":\"change\",\"nodeTime\":" << mesh.getNodeTime()
-                  << ",\"time\":\"" << timeToString() << "\""
-                  << ", \"layout\":" << mesh.asNodeTree().toString() << "}"
-                  << std::endl;
+        // std::cout << "{\"event\":\"change\",\"nodeTime\":" << mesh.getNodeTime()
+        //           << ",\"time\":\"" << timeToString() << "\""
+        //           << ", \"layout\":" << mesh.asNodeTree().toString() << "}"
+        //           << std::endl;
         nodeTree = mesh.asNodeTree().toString();
       });
     }
 
     if (logLevel.size() == 0 || contains(logLevel, "offset")) {
       mesh.onNodeTimeAdjusted([&mesh](int32_t offset) {
-        std::cout << "{\"event\":\"offset\",\"nodeTime\":" << mesh.getNodeTime()
-                  << ",\"time\":\"" << timeToString() << "\""
-                  << ",\"offset\":" << offset << "}" << std::endl;
+      //   std::cout << "{\"event\":\"offset\",\"nodeTime\":" << mesh.getNodeTime()
+      //             << ",\"time\":\"" << timeToString() << "\""
+      //             << ",\"offset\":" << offset << "}" << std::endl;
       });
     }
 
     if (logLevel.size() == 0 || contains(logLevel, "delay")) {
       mesh.onNodeDelayReceived([&mesh](uint32_t nodeId, int32_t delay) {
-        std::cout << "{\"event\":\"delay\",\"nodeTime\":" << mesh.getNodeTime()
-                  << ",\"time\":\"" << timeToString() << "\""
-                  << ",\"nodeId\":" << nodeId << ",\"delay\":" << delay << "}"
-                  << std::endl;
+        // std::cout << "{\"event\":\"delay\",\"nodeTime\":" << mesh.getNodeTime()
+        //           << ",\"time\":\"" << timeToString() << "\""
+        //           << ",\"nodeId\":" << nodeId << ",\"delay\":" << delay << "}"
+        //           << std::endl;
       });
     }
 
@@ -463,12 +492,26 @@ int main(void) {
         // {
         //     std::cout<<"parameter " << i << " " + v[i]<<std::endl;
         // }
-        if(v.size()==3)
+        if(v.size()==1)
+        {
+          if(v[0]=="tree") 
+          {
+            std::cout<<nodeTree<<std::endl;
+          }
+          else
+          {
+            std::cout<<"error:unknow method."<<std::endl; 
+            std::cout<<"Usage:"<<std::endl;
+            std::cout<<"Get Message:http://ip/id/sensor/get"<<std::endl;
+            std::cout<<"Send Message:http://ip/id/send/sensor/msg"<<std::endl;
+          }
+        }
+        else if(v.size()==3)
         {
           id=v[0];
           int size=id.length();
           //std::cout<<"id size: "<<size<<std::endl;
-          if(id.length()!=10)
+          if(id.length()!=10&&id.length()!=9)
           {
             std::cout<<"error:node id is wrong."<<std::endl;
             std::cout<<"Usage:"<<std::endl;
@@ -484,6 +527,22 @@ int main(void) {
                 bool flag=false;
                 for(int i=0;i<NODE_NUM_MAX;i++)
                 {
+                  // //test start
+                  // std::cout<<"Node id"<<n[i].id<<std::endl;
+                  // std::cout<<"is Connect "<<n[i].isConnect<<std::endl;
+                  // for(int j=0;j<n[i].v.size();j++)
+                  // { 
+                  //   std::cout<<"sensor"<<n[i].v[j].sensor<<" msg"<<n[i].v[j].message<<std::endl;
+                  //   std::cout<<"sensor"<<v[2]<<std::endl;
+                  //   if(n[i].v[j].sensor == v[2])
+                  //   {
+                  //     std::cout<<n[i].v[j].message<<std::endl;
+                  //     //std::cout<<"sensor"<<n[i].v[j].sensor<<" msg"<<n[i].v[j].message<<std::endl;
+                  //     flag = true;
+                  //     break;
+                  //   }
+                  // }
+                  // //test end
                   if(n[i].id==id)
                   { 
                     if(n[i].isConnect == true) 
@@ -554,7 +613,7 @@ int main(void) {
         else if(v.size()==4)
         {
           id=v[0];
-          if(id.length()!=10)
+          if(id.length()!=10&&id.length()!=9)
           {
             std::cout<<"error:node id is wrong."<<std::endl;
             std::cout<<"Usage:"<<std::endl;
@@ -571,7 +630,8 @@ int main(void) {
                 {//msg is not empty
                   uint32_t dest = strtoul(v[0].c_str(), NULL, 10); //string to uint_32
                   string msg=v[2]+"/"+v[3];
-                  mesh.sendSingle(dest,v[3]);
+                 // std::cout<<"dest"<<dest<<std::endl;
+                  mesh.sendSingle(dest,msg);
                 }
                 else
                 {

@@ -116,6 +116,17 @@ void split_string(const std::string& s, std::vector<std::string>& v, const std::
     v.push_back(s.substr(pos1));
 }
 
+void replaceAll(std::string& str, const std::string& from, const std::string& to)
+{
+  //https://stackoverflow.com/questions/3418231/replace-part-of-a-string-with-another-string
+  if(from.empty())
+      return;
+  size_t start_pos = 0;
+  while((start_pos = str.find(from, start_pos)) != std::string::npos) {
+      str.replace(start_pos, from.length(), to);
+      start_pos += to.length(); // In case 'to' contains 'from', like replacing 'x' with 'yx'
+  }
+}
 
 const unsigned NODE_NUM_MAX = 10;
 
@@ -469,9 +480,11 @@ int main(void) {
     string id="";
     string method="";
     string message="";
-    while (true) {
+    while (true) 
+    {
       //usleep(1000);  // Tweak this for acceptable cpu usage
-      while (FCGX_Accept_r(&request) == 0) {
+      while (FCGX_Accept_r(&request) == 0) 
+      {
         fcgi_streambuf cin_fcgi_streambuf(request.in);
         fcgi_streambuf cout_fcgi_streambuf(request.out);
         fcgi_streambuf cerr_fcgi_streambuf(request.err);  
@@ -482,7 +495,7 @@ int main(void) {
         mesh.update();
         io_service.poll();
         const char * uri = FCGX_GetParam("REQUEST_URI", request.envp);
-        //string content = get_request_content(request);  
+        string content = get_request_content(request);  
         string u=uri;
         u=u.substr(1);
         split_string(u,v,"/");
@@ -496,13 +509,31 @@ int main(void) {
         {
           if(v[0]=="tree") 
           {
+            replaceAll(nodeTree,"nodeId","name");
+            replaceAll(nodeTree,"subs","children");
             std::cout<<nodeTree<<std::endl;
+          }
+          else if(v[0].length()==10||v[0].length()==9)
+          {
+            id=v[0];
+            uint32_t dest = strtoul(v[0].c_str(), NULL, 10); //string to uint_32
+            if(content!="")
+            {
+              mesh.sendSingle(dest,content);
+            }
+            else
+            {
+              std::cout<<"error:please select a message to send."<<std::endl; 
+              std::cout<<"Usage:"<<std::endl;
+              std::cout<<"Get Message:http://ip/id/get/sensor"<<std::endl;
+              std::cout<<"Send Message:http://ip/id/send/sensor/msg"<<std::endl;
+            }
           }
           else
           {
             std::cout<<"error:unknow method."<<std::endl; 
             std::cout<<"Usage:"<<std::endl;
-            std::cout<<"Get Message:http://ip/id/sensor/get"<<std::endl;
+            std::cout<<"Get Message:http://ip/id/get/sensor"<<std::endl;
             std::cout<<"Send Message:http://ip/id/send/sensor/msg"<<std::endl;
           }
         }
@@ -533,7 +564,7 @@ int main(void) {
                   // for(int j=0;j<n[i].v.size();j++)
                   // { 
                   //   std::cout<<"sensor"<<n[i].v[j].sensor<<" msg"<<n[i].v[j].message<<std::endl;
-                  //   std::cout<<"sensor"<<v[2]<<std::endl;
+                  //   //std::cout<<"sensor"<<v[2]<<std::endl;
                   //   if(n[i].v[j].sensor == v[2])
                   //   {
                   //     std::cout<<n[i].v[j].message<<std::endl;
@@ -551,7 +582,7 @@ int main(void) {
                       {
                         std::cout<<"error:this node does not have any message,please try again."<<std::endl;
                         std::cout<<"Usage:"<<std::endl;
-                        std::cout<<"Get Message:http://ip/id/sensor/get"<<std::endl;
+                        std::cout<<"Get Message:http://ip/id/get/sensor"<<std::endl;
                         std::cout<<"Send Message:http://ip/id/send/sensor/msg"<<std::endl;
                       }
                       else
@@ -570,7 +601,7 @@ int main(void) {
                         {//Sensor message is null
                           std::cout<<"error:can not find this node's sensor message."<<std::endl;
                           std::cout<<"Usage:"<<std::endl;
-                          std::cout<<"Get Message:http://ip/id/sensor/get"<<std::endl;
+                          std::cout<<"Get Message:http://ip/id/get/sensor"<<std::endl;
                           std::cout<<"Send Message:http://ip/id/send/sensor/msg"<<std::endl;
                         }
                       }
@@ -579,7 +610,7 @@ int main(void) {
                     {
                       std::cout<<"error:node is disconnect to this server."<<std::endl;
                       std::cout<<"Usage:"<<std::endl;
-                      std::cout<<"Get Message:http://ip/id/sensor/get"<<std::endl;
+                      std::cout<<"Get Message:http://ip/id/get/sensor"<<std::endl;
                       std::cout<<"Send Message:http://ip/id/send/sensor/msg"<<std::endl;
                     }
                     flag = true;
@@ -589,7 +620,7 @@ int main(void) {
                 {
                   std::cout<<"error:can not find this node."<<std::endl;
                   std::cout<<"Usage:"<<std::endl;
-                  std::cout<<"Get Message:http://ip/id/sensor/get"<<std::endl;
+                  std::cout<<"Get Message:http://ip/id/get/sensor"<<std::endl;
                   std::cout<<"Send Message:http://ip/id/send/sensor/msg"<<std::endl;
                 }
               }
@@ -597,7 +628,7 @@ int main(void) {
               {
                 std::cout<<"error:please select a sensor to get the message."<<std::endl; 
                 std::cout<<"Usage:"<<std::endl;
-                std::cout<<"Get Message:http://ip/id/sensor/get"<<std::endl;
+                std::cout<<"Get Message:http://ip/id/get/sensor"<<std::endl;
                 std::cout<<"Send Message:http://ip/id/send/sensor/msg"<<std::endl;
               }
             }
@@ -605,7 +636,7 @@ int main(void) {
             {
               std::cout<<"error:unknow method."<<std::endl; 
               std::cout<<"Usage:"<<std::endl;
-              std::cout<<"Get Message:http://ip/id/sensor/get"<<std::endl;
+              std::cout<<"Get Message:http://ip/id/get/sensor"<<std::endl;
               std::cout<<"Send Message:http://ip/id/send/sensor/msg"<<std::endl;
             }
           }
@@ -637,7 +668,7 @@ int main(void) {
                 {
                   std::cout<<"error:please select a message to send."<<std::endl; 
                   std::cout<<"Usage:"<<std::endl;
-                  std::cout<<"Get Message:http://ip/id/sensor/get"<<std::endl;
+                  std::cout<<"Get Message:http://ip/id/get/sensor"<<std::endl;
                   std::cout<<"Send Message:http://ip/id/send/sensor/msg"<<std::endl;
                 }
               }
@@ -645,7 +676,7 @@ int main(void) {
               {
                 std::cout<<"error:please select a sensor to send the message."<<std::endl; 
                 std::cout<<"Usage:"<<std::endl;
-                std::cout<<"Get Message:http://ip/id/sensor/get"<<std::endl;
+                std::cout<<"Get Message:http://ip/id/get/sensor"<<std::endl;
                 std::cout<<"Send Message:http://ip/id/send/sensor/msg"<<std::endl;
               }
             } 
@@ -653,7 +684,7 @@ int main(void) {
             {
               std::cout<<"error:unknow method."<<std::endl; 
               std::cout<<"Usage:"<<std::endl;
-              std::cout<<"Get Message:http://ip/id/sensor/get"<<std::endl;
+              std::cout<<"Get Message:http://ip/id/get/sensor"<<std::endl;
               std::cout<<"Send Message:http://ip/id/send/sensor/msg"<<std::endl;
             }
           }
